@@ -13,6 +13,7 @@ func WalkFiles(ctx context.Context, root string, outCh chan<- string) error {
         if err != nil { // unreadable dir/file
             return nil // keep walking
         }
+        // ignore directories, symlinks, etc
         if !d.Type().IsRegular() {
             return nil
         }
