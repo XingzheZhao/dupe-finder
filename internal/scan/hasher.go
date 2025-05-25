@@ -3,6 +3,7 @@ package scan
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"os"
 	"sync"
@@ -42,9 +43,32 @@ func FindDuplicates(
                 out <- pair{Err: err}
                 continue
             }
-            f, err := f.Seek(0, io.SeekEnd)
+            size, _ := f.Seek(0, io.SeekEnd)
             _, _ = f.Seek(0, io.SeekStart)
 
+            for {
+                n, rerr := f.Read(buf)
+                if n > 0 {
+                    _, _ = h.Write(buf[:n])
+                }
+                if rerr == io.EOF {
+                    break
+                }
+                if rerr != nil {
+                    err = rerr
+                    break
+                }
+            }
+            _ = f.Close()
+
+            if err != nil {
+                out <- pair{Err: err}
+                continue
+            }
+            out <- pair(
+                    Hash: hex.EncodeToString(h.Sum(nil))
+                    File: FileInfo(Path: p, Size: size)
+                )
         }
     }
 
